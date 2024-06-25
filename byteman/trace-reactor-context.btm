@@ -1,0 +1,49 @@
+RULE reactor.core.publisher.FluxContextWriteRestoringThreadLocals.ContextWriteRestoringThreadLocalsSubscriber#onNext
+CLASS ^reactor.core.publisher.FluxContextWriteRestoringThreadLocals$ContextWriteRestoringThreadLocalsSubscriber
+METHOD onNext
+AT EXIT
+IF true
+DO traceln("[BYTEMAN] Flux.ContextWriteRestoringThreadLocalsSubscriber#onNext()")
+ENDRULE
+
+RULE reactor.core.publisher.FluxContextWriteRestoringThreadLocals.ContextWriteRestoringThreadLocalsSubscriber#onSubscribe
+CLASS ^reactor.core.publisher.FluxContextWriteRestoringThreadLocals$ContextWriteRestoringThreadLocalsSubscriber
+METHOD onSubscribe
+AT EXIT
+IF true
+DO traceln("[BYTEMAN] Flux.ContextWriteRestoringThreadLocalsSubscriber#onSubscribe()")
+ENDRULE
+
+
+RULE reactor.core.publisher.MonoContextWriteRestoringThreadLocals.ContextWriteRestoringThreadLocalsSubscriber#onNext
+CLASS ^reactor.core.publisher.MonoContextWriteRestoringThreadLocals$ContextWriteRestoringThreadLocalsSubscriber
+METHOD onNext
+AT EXIT
+IF true
+DO traceln("[BYTEMAN] Mono.ContextWriteRestoringThreadLocalsSubscriber#onNext()")
+ENDRULE
+
+RULE reactor.core.publisher.MonoContextWriteRestoringThreadLocals.ContextWriteRestoringThreadLocalsSubscriber#onSubscribe
+CLASS ^reactor.core.publisher.MonoContextWriteRestoringThreadLocals$ContextWriteRestoringThreadLocalsSubscriber
+METHOD onSubscribe
+AT EXIT
+IF true
+DO traceln("[BYTEMAN] Mono.ContextWriteRestoringThreadLocalsSubscriber#onSubscribe()")
+ENDRULE
+
+
+RULE brave.baggage.CorrelationScopeDecorator.Multiple#decorateScope
+CLASS ^brave.baggage.CorrelationScopeDecorator$Multiple
+METHOD decorateScope
+AT EXIT
+IF true
+DO traceln("[BYTEMAN] brave.baggage.CorrelationScopeDecorator$Multiple#decorateScope()")
+ENDRULE
+
+RULE org.slf4j.MDC#put
+CLASS ^org.slf4j.MDC
+METHOD put
+AT EXIT
+IF true
+DO traceStack("[BYTEMAN] org.slf4j.MDC#put(" + $1 + ") in thread " + Thread.currentThread().getName() + "\n", 10)
+ENDRULE
