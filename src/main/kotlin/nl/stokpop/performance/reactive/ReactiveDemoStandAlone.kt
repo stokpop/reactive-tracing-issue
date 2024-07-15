@@ -1,6 +1,7 @@
 package nl.stokpop.performance.reactive
 
 import io.micrometer.context.ContextRegistry
+import nl.stokpop.performance.reactive.ReactiveDemoStandAlone.Companion.log
 import org.reactivestreams.FlowAdapters
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -21,7 +22,7 @@ class ReactiveDemoStandAlone {
     private val jdkHttpClient: HttpClient = HttpClient.newHttpClient()
 
     companion object {
-        private val log: Logger = LoggerFactory.getLogger(ReactiveDemoStandAlone::class.java)
+        val log: Logger = LoggerFactory.getLogger(ReactiveDemoStandAlone::class.java)
 
         private val TRACE_ID: ThreadLocal<String> = ThreadLocal.withInitial { "INIT" }
 
@@ -33,40 +34,59 @@ class ReactiveDemoStandAlone {
                 .registerThreadLocalAccessor("TRACE_ID", TRACE_ID)
                 .registerThreadLocalAccessor("requestId",
                     { MDC.get("requestId") },
-                    { r -> MDC.put("requestId", r)},
+                    { r -> MDC.put("requestId", r) },
                     { MDC.remove("requestId") })
                 .registerThreadLocalAccessor("traceId",
                     { MDC.get("traceId") },
-                    { r -> MDC.put("traceId", r)},
+                    { r -> MDC.put("traceId", r) },
                     { MDC.remove("traceId") })
 
-            log.info("Initialized")
+            log.info("Initialized class")
         }
     }
 
     fun startWithHttpClient() {
         initMdc()
 
-        log.info("Start")
+        log.info("Start http client call")
 
         Mono.fromFuture {
-                log.info("[" + TRACE_ID.get() + "] Preparing request")
+            log.info("[" + TRACE_ID.get() + "] Preparing request")
 
-                // see if TRACE_ID propagates to the http client threads
-                jdkHttpClient.sendAsync(
-                    HttpRequest.newBuilder()
-                        .uri(URI.create("https://httpbin.org/drip"))
+            // see if TRACE_ID propagates to the http client threads
+            jdkHttpClient.sendAsync(
+                HttpRequest.newBuilder()
+                    .uri(URI.create("https://httpbin.org/drip"))
                     .GET()
                     .build(),
-                    HttpResponse.BodyHandlers.ofPublisher());
-            }
+                HttpResponse.BodyHandlers.ofPublisher()
+            )
+        }
             .flatMapMany { r: HttpResponse<Flow.Publisher<MutableList<ByteBuffer>>> ->
                 log.info("[" + TRACE_ID.get() + "] " + "Handling response[" + r.statusCode() + "] and reading body")
                 FlowAdapters.toPublisher(r.body())
             }
-        .collect(ByteBufferToStringCollector())
-        .doOnNext { v: String -> log.info("[" + TRACE_ID.get() + "] " + "Response body is $v") }
-        .block()
+            .collect(ByteBufferToStringCollector())
+            .doOnNext { v: String -> log.info("[" + TRACE_ID.get() + "] " + "Response body is $v") }
+            .block()
+
+    }
+
+    fun startWithHttpClientEfficient() {
+        initMdc()
+
+        log.info("Start http client call - efficient")
+
+        val result = jdkHttpClient.sendAsync(
+            HttpRequest.newBuilder()
+                .uri(URI.create("https://httpbin.org/drip"))
+                .GET().build(),
+            HttpResponse.BodyHandlers.ofString()
+        ).thenApplyAsync { r -> r.body() }
+
+        Mono.fromCompletionStage(result)
+            .doOnNext { v: String -> log.info("[" + TRACE_ID.get() + "] " + "Response body is $v") }
+            .block()
     }
 
     private fun initMdc() {
@@ -76,12 +96,12 @@ class ReactiveDemoStandAlone {
         MDC.put("traceId", TRACE_ID.get())
     }
 
-    fun startSimple() {
+    fun startGenerator() {
         initMdc()
 
-        log.info("Start simple")
+        log.info("Start character generator")
 
-        Flux.from( generateCharacters())
+        Flux.from(generateCharacters())
             .delayElements(Duration.ofMillis(1))
             .map { e -> e.uppercase() }
             .doOnNext { e -> log.info("[" + TRACE_ID.get() + "] " + " Element is " + e) }
@@ -98,16 +118,20 @@ class ReactiveDemoStandAlone {
             state + 1
         })
     }
-
 }
 
 fun main(args: Array<String>) {
     val app = ReactiveDemoStandAlone()
-    if (args.isEmpty() || args[0] == "simple") {
-        app.startSimple()
+    log.info("Start with arguments: " + args.joinToString(" "))
+    when {
+        args.isEmpty() || args[0] == "generator" -> {
+            app.startGenerator()
+        }
+        args[0] == "http" -> {
+            app.startWithHttpClient()
+        }
+        args[0] == "http-efficient" -> {
+            app.startWithHttpClientEfficient()
+        }
     }
-    else {
-        app.startWithHttpClient()
-    }
-
 }
