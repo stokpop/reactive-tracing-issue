@@ -8,13 +8,21 @@ Use this command to download byteman:
 
 To run:
 
-    ./mvnw spring-boot:run -Dspring-boot.run.arguments=generate
+    ./mvnw spring-boot:run -Pgenerator
 
-Choose arguments from: `generate,http,http-efficient`.
+Choose profile from: `generator,http,http-efficient`.
 
-* `generate` - simple generator for characters
+* `generator` - simple generator for characters
 * `http` - uses JDK http client to show that with 3.6 the context is present and missing with 3.5
 * `http-efficient` - a more efficient way of using JDK http client for this specific case, bypassing some Flux processing
+
+Choose second profile for version:
+
+* `reactor35`
+* `reactor36`
+* `reactor396s`
+
+Add `byteman` profile to include byteman profiling to count calls to certain methods, e.g. `MDC.put(...)`
 
 ## check dependencies
 
@@ -40,7 +48,7 @@ Choose arguments from: `generate,http,http-efficient`.
 
 ## counting calls
 
-    ./mvnw spring-boot:run -Preactor36,byteman -Dspring-boot.run.arguments=generate | grep 'put(requestId)' | wc -l
+    ./mvnw spring-boot:run -Pgenerator,reactor36,byteman | grep 'put(requestId)' | wc -l
 
 # examples
 
@@ -49,18 +57,18 @@ See difference in times a value is put in MDC, we look at `MDC.put("requestId")`
 For the generate characters case, there is no difference in output, but _many_ more calls:
 
 ```
-./mvnw spring-boot:run -Preactor35,byteman -Dspring-boot.run.arguments=generate | grep 'put(requestId)' | wc -l
+./mvnw spring-boot:run -Pgenerator,reactor35,byteman | grep 'put(requestId)' | wc -l
      27
-./mvnw spring-boot:run -Preactor36,byteman -Dspring-boot.run.arguments=generate | grep 'put(requestId)' | wc -l
+./mvnw spring-boot:run -Pgenerator,reactor36,byteman | grep 'put(requestId)' | wc -l
      135
 ```
 
-For the httpClient case (which actually makes a difference, the propagation gets fixed)
+For the `http` case (which actually makes a difference, the propagation gets fixed)
 
 ```
-./mvnw spring-boot:run -PhttpClient,reactor35,byteman -Dspring-boot.run.arguments=http | grep 'put(requestId)' | wc -l
+./mvnw spring-boot:run -Phttp,reactor35,byteman | grep 'put(requestId)' | wc -l
        1
-./mvnw spring-boot:run -PhttpClient,reactor36,byteman -Dspring-boot.run.arguments=http | grep 'put(requestId)' | wc -l
+./mvnw spring-boot:run -Phttp,reactor36,byteman | grep 'put(requestId)' | wc -l
      25
 ```
 
@@ -80,6 +88,11 @@ org.reactivestreams.FlowAdapters$FlowToReactiveSubscriber.onNext(FlowAdapters.ja
 ```
 
 ```
-./mvnw spring-boot:run -Preactor36,byteman -Dspring-boot.run.arguments=generate | grep 'FluxContextWriteRestoringThreadLocals.*ContextWriteRestoringThreadLocalsSubscriber\.onNext' | wc -l
+./mvnw spring-boot:run -Pgenerator,reactor35,byteman | grep 'FluxContextWriteRestoringThreadLocals.*ContextWriteRestoringThreadLocalsSubscriber\.onNext' | wc -l
+     0
+```
+
+```
+./mvnw spring-boot:run -Pgenerator,reactor36,byteman | grep 'FluxContextWriteRestoringThreadLocals.*ContextWriteRestoringThreadLocalsSubscriber\.onNext' | wc -l
      104
 ```

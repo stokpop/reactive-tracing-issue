@@ -193,19 +193,34 @@
 			</build>
 		</profile>
 		<profile>
-			<id>httpClient</id>
+			<id>http-efficient</id>
 			<build>
 				<plugins>
 					<plugin>
 						<groupId>org.springframework.boot</groupId>
 						<artifactId>spring-boot-maven-plugin</artifactId>
 						<configuration>
-							<arguments>httpClient</arguments>
+							<arguments>http-efficient</arguments>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
+		<profile>
+			<id>generator</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.springframework.boot</groupId>
+						<artifactId>spring-boot-maven-plugin</artifactId>
+						<configuration>
+							<arguments>generator</arguments>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
 	</profiles>
 
 </project>

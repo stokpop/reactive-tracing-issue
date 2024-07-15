@@ -45,5 +45,5 @@ CLASS ^org.slf4j.MDC
 METHOD put
 AT EXIT
 IF true
-DO traceStack("[BYTEMAN] org.slf4j.MDC#put(" + $1 + ") in thread " + Thread.currentThread().getName() + "\n", 10)
+DO traceStack("[BYTEMAN] org.slf4j.MDC#put(" + $1 + ") in thread " + Thread.currentThread().getName() + "\n", 20)
 ENDRULE
